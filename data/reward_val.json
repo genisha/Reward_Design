@@ -1,0 +1,82 @@
+[
+    {
+        "prompt": [
+            {
+                "content": "Drone moves ahead and there is no object ahead. What is your reward function?",
+                "role": "user"
+            }
+        ],
+        "chosen": [
+            {
+                "content": " I know a reward model",
+                "role": "assistant"
+            }
+        ],
+        "rejected": [
+            {
+                "content": "I dont know a reward model",
+                "role": "assistant"
+            }
+        ]
+    },
+    {
+        "prompt": [
+            {
+                "content": "Drone moves ahead and there is no object ahead. What is your reward function?",
+                "role": "user"
+            }
+        ],
+        "chosen": [
+            {
+                "content": " I know a reward model",
+                "role": "assistant"
+            }
+        ],
+        "rejected": [
+            {
+                "content": "I dont know a reward model",
+                "role": "assistant"
+            }
+        ]
+    },
+    {
+        "prompt": [
+            {
+                "content": "Drone moves ahead and there is no object ahead. What is your reward function?",
+                "role": "user"
+            }
+        ],
+        "chosen": [
+            {
+                "content": " I know a reward model",
+                "role": "assistant"
+            }
+        ],
+        "rejected": [
+            {
+                "content": "I dont know a reward model",
+                "role": "assistant"
+            }
+        ]
+    },
+    {
+        "prompt": [
+            {
+                "content": "Drone moves ahead and there is no object ahead. What is your reward function?",
+                "role": "user"
+            }
+        ],
+        "chosen": [
+            {
+                "content": " I know a reward model",
+                "role": "assistant"
+            }
+        ],
+        "rejected": [
+            {
+                "content": "I dont know a reward model",
+                "role": "assistant"
+            }
+        ]
+    }
+]

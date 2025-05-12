@@ -1,0 +1,9 @@
+'''
+## Create a Hugging Face Acount and Log In
+## Obtain Your authentication token
+## Login with huggigface-cli
+'''
+# pip install huggingface_hub (if not yet install)
+# huggingface-cli login
+# transformers-cli download meta-llama/Meta-Llama-3-8B-Instruct
+# huggingface-cli download Qwen/Qwen2.5-0.5B-Instruct
