@@ -14,6 +14,7 @@ from transformers import AutoTokenizer, AutoModelForCausalLM
 # Path for Qwen 2.5-3B
 model_path = "/home/genisha_admin/.cache/huggingface/hub/models--Qwen--Qwen2.5-3B-Instruct/snapshots/aa8e72537993ba99e69dfaafa59ed015b17504d1"
 
+#Check if it works
 
 # Load tokenizer and model from the local path
 tokenizer = AutoTokenizer.from_pretrained(model_path)
