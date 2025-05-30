@@ -1,43 +1,63 @@
+
+import torch
+import os
 from trl import DPOConfig, DPOTrainer
 from transformers import AutoModelForCausalLM, AutoTokenizer, pipeline
-import torch
 from datasets import DatasetDict, Dataset, load_dataset
+import re
 
-#dataset = load_dataset("test_data")
-#dataset = load_dataset('csv', data_files='test_data/Qwen2_test.csv')
 
- #90-10 Split
-#split_dataset = dataset['train'].train_test_split(test_size=0.1)
+os.environ["WANDB_PROJECT"] = "Run1"  # name my W&B project
+os.environ["WANDB_LOG_MODEL"] = "checkpoint" 
+
+
 dataset = load_dataset( 'json', data_files={
-    'train': 'data/Qwen0_5_dpo_converted.json',
-    'valid': 'data/reward_val.json'
+    'train': 'data/train_0_5_add.json',
+    'valid': 'data/valid_0_5.json'
 })
-#print(dataset
 
 #dataset = load_dataset("shawhin/youtube-titles-dpo")
-dataset['train'].to_json('data_YouTube.json')
-model_name = "Qwen/Qwen2.5-0.5B-Instruct"
+
+#model_name = "Qwen/Qwen2.5-0.5B-Instruct"
+#model_name = "/home/genisha_admin/.cache/huggingface/hub/models--Qwen--Qwen2.5-0.5B-Instruct/snapshots/7ae557604adf67be50417f59c2c2f167def9a775"
+# Path for Qwen 2.5-1.5B
+model_name = "/home/genisha_admin/.cache/huggingface/hub/models--Qwen--Qwen2.5-1.5B-Instruct/snapshots/989aa7980e4cf806f80c7fef2b1adb7bc71aa306" 
+# Path for Qwen 2.5-3B
+#model_name = "/home/genisha_admin/.cache/huggingface/hub/models--Qwen--Qwen2.5-3B-Instruct/snapshots/aa8e72537993ba99e69dfaafa59ed015b17504d1"
 
 model = AutoModelForCausalLM.from_pretrained(model_name)
 tokenizer = AutoTokenizer.from_pretrained(model_name)
 tokenizer.pad_token = tokenizer.eos_token # set pad token
 
-ft_model_name = model_name.split('/')[1].replace("Instruct", "DPO")
+#ft_model_name = model_name.split('/')[1].replace("Instruct", "DPO")
+
+#device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+device = torch.device("cpu")
+print(f'GPU: {device}')
+model.to(device)
+
+
+# Extract part: Qwen2.5-0.5B-Instruct
+match = re.search(r'models--[^-]+--([^/]+)', model_name)
+if match:
+    ft_model_name = match.group(1).replace("Instruct", "DPO")
+    print(ft_model_name)
+# example: Output: Qwen2.5-0.5B-DPO
 
 training_args = DPOConfig(
     output_dir=ft_model_name, 
     logging_steps=25,
-    per_device_train_batch_size=8,
-    per_device_eval_batch_size=8,
+    per_device_train_batch_size=1,
+    per_device_eval_batch_size=1,
     num_train_epochs=3,
     load_best_model_at_end=True,
     metric_for_best_model="eval_loss",
     save_strategy="epoch",
     eval_strategy="epoch",
     eval_steps=1,
+    report_to="wandb"
 )
 
-device = torch.device('cuda:0')
 
 print(f'load data and model successfully')
 print(f'dataset: {dataset}')
@@ -50,3 +70,4 @@ trainer = DPOTrainer(
     eval_dataset=dataset['valid'],
 )
 trainer.train()
+torch.cuda.empty_cache()
