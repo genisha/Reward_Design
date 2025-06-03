@@ -1,73 +1,96 @@
-
 import torch
 import os
 from trl import DPOConfig, DPOTrainer
-from transformers import AutoModelForCausalLM, AutoTokenizer, pipeline
-from datasets import DatasetDict, Dataset, load_dataset
+from transformers import AutoModelForCausalLM, AutoTokenizer
+from datasets import load_dataset
 import re
 
+# Setup W&B environment
+os.environ["WANDB_PROJECT"] = "Run2"
+os.environ["WANDB_LOG_MODEL"] = "checkpoint"
 
-os.environ["WANDB_PROJECT"] = "Run1"  # name my W&B project
-os.environ["WANDB_LOG_MODEL"] = "checkpoint" 
-
-
-dataset = load_dataset( 'json', data_files={
+# Load dataset
+dataset = load_dataset('json', data_files={
     'train': 'data/train_0_5_add.json',
     'valid': 'data/valid_0_5.json'
 })
 
-#dataset = load_dataset("shawhin/youtube-titles-dpo")
-
-#model_name = "Qwen/Qwen2.5-0.5B-Instruct"
-#model_name = "/home/genisha_admin/.cache/huggingface/hub/models--Qwen--Qwen2.5-0.5B-Instruct/snapshots/7ae557604adf67be50417f59c2c2f167def9a775"
-# Path for Qwen 2.5-1.5B
-model_name = "/home/genisha_admin/.cache/huggingface/hub/models--Qwen--Qwen2.5-1.5B-Instruct/snapshots/989aa7980e4cf806f80c7fef2b1adb7bc71aa306" 
-# Path for Qwen 2.5-3B
-#model_name = "/home/genisha_admin/.cache/huggingface/hub/models--Qwen--Qwen2.5-3B-Instruct/snapshots/aa8e72537993ba99e69dfaafa59ed015b17504d1"
-
+# Load model
+model_name = "/home/genisha_admin/.cache/huggingface/hub/models--Qwen--Qwen2.5-0.5B-Instruct/snapshots/7ae557604adf67be50417f59c2c2f167def9a775"
 model = AutoModelForCausalLM.from_pretrained(model_name)
 tokenizer = AutoTokenizer.from_pretrained(model_name)
-tokenizer.pad_token = tokenizer.eos_token # set pad token
+tokenizer.pad_token = tokenizer.eos_token
 
-#ft_model_name = model_name.split('/')[1].replace("Instruct", "DPO")
+# Print model layer names (optional)
+print("\n--- Model Layers ---")
+for name, _ in model.named_parameters():
+    print(name)
 
-#device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-device = torch.device("cpu")
-print(f'GPU: {device}')
-model.to(device)
+# Freeze all parameters
+for param in model.parameters():
+    param.requires_grad = False
 
+# Unfreeze final transformer block and lm_head (adjust block index if needed)
+for name, param in model.named_parameters():
+    if "model.layers.23" in name or "lm_head" in name:  # Adjust block index if model has fewer layers
+        param.requires_grad = True
 
-# Extract part: Qwen2.5-0.5B-Instruct
+# Print CUDA availability
+print("\n--- CUDA Info ---")
+print("CUDA available:", torch.cuda.is_available())
+if torch.cuda.is_available():
+    print("Device count:", torch.cuda.device_count())
+    print("Current device:", torch.cuda.current_device())
+    print("Device name:", torch.cuda.get_device_name(torch.cuda.current_device()))
+
+# Extract output dir name
 match = re.search(r'models--[^-]+--([^/]+)', model_name)
 if match:
     ft_model_name = match.group(1).replace("Instruct", "DPO")
-    print(ft_model_name)
-# example: Output: Qwen2.5-0.5B-DPO
+else:
+    ft_model_name = "DPO-Output"
 
+# Training configuration
 training_args = DPOConfig(
-    output_dir=ft_model_name, 
-    logging_steps=25,
-    per_device_train_batch_size=1,
-    per_device_eval_batch_size=1,
+    output_dir=ft_model_name,
+    logging_dir="./logs",  # <--- TensorBoard logs go here
+    logging_steps=10,      # log more frequently for better graphs
+    per_device_train_batch_size=2,
+    per_device_eval_batch_size=2,
     num_train_epochs=3,
     load_best_model_at_end=True,
     metric_for_best_model="eval_loss",
     save_strategy="epoch",
     eval_strategy="epoch",
     eval_steps=1,
-    report_to="wandb"
+    report_to=["tensorboard"],  # <--- enable TensorBoard reporting
 )
 
 
-print(f'load data and model successfully')
-print(f'dataset: {dataset}')
 
+print('\n--- Dataset Loaded ---')
+print(dataset)
+
+# Initialize trainer
 trainer = DPOTrainer(
-    model=model, 
-    args=training_args, 
-    processing_class=tokenizer, 
+    model=model,
+    processing_class=tokenizer,
+    args=training_args,
     train_dataset=dataset['train'],
     eval_dataset=dataset['valid'],
 )
-trainer.train()
+
+# Train
+try:
+    trainer.train()
+    print(f'Traning completed')
+except Exception as e:
+    print(f'TRaning failed')
+    print(e)
+# Cleanup
 torch.cuda.empty_cache()
+
+print(f"Model and checkpoints saved to: {training_args.output_dir}")
+
+from datetime import datetime
+print(f"Training completed at: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
